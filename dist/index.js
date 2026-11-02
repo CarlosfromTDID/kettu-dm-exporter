@@ -18,7 +18,7 @@ storage.ignoreWebPreviews ??= true;
 storage.rangeMode ??= "all";
 storage.batchDelayMs ??= 450;
 storage.allowServers ??= false;
-storage.lastExportSummary ??= "Ninguna exportación realizada aún.";
+storage.lastExportSummary ??= "No export performed yet.";
 
 const CHANNEL_TYPE_DM = 1;
 const CHANNEL_TYPE_GROUP_DM = 3;
@@ -66,11 +66,11 @@ function formatDateReadable(iso) {
 }
 
 function getChannelDisplayName(channel, UserStore) {
-    if (!channel) return "MD_Desconocido";
+    if (!channel) return "Unknown_DM";
     if (channel.type === CHANNEL_TYPE_DM) {
         const recipientId = channel.recipients && channel.recipients[0];
         const u = recipientId && UserStore && UserStore.getUser ? UserStore.getUser(recipientId) : null;
-        return (u && (u.globalName || u.username)) || channel.name || ("MD_" + channel.id);
+        return (u && (u.globalName || u.username)) || channel.name || ("DM_" + channel.id);
     }
     if (channel.type === CHANNEL_TYPE_GROUP_DM) {
         if (channel.name) return channel.name;
@@ -78,9 +78,9 @@ function getChannelDisplayName(channel, UserStore) {
             const u = UserStore && UserStore.getUser ? UserStore.getUser(id) : null;
             return (u && (u.globalName || u.username)) || id;
         }).join(", ");
-        return names ? ("Grupo_" + names) : ("Grupo_" + channel.id);
+        return names ? ("Group_" + names) : ("Group_" + channel.id);
     }
-    return channel.name || ("Canal_" + channel.id);
+    return channel.name || ("Channel_" + channel.id);
 }
 
 function formatMessagesForExport(messages, channel, channelName, format, includeImages, onlyImages, ignoreWebPreviews) {
@@ -118,7 +118,7 @@ function formatMessagesForExport(messages, channel, channelName, format, include
                     author: {
                         id: m.author && m.author.id,
                         username: m.author && m.author.username,
-                        displayName: (m.author && (m.author.global_name || m.author.username)) || "Usuario"
+                        displayName: (m.author && (m.author.global_name || m.author.username)) || "User"
                     },
                     content: m.content || "",
                     replyToMessageId: (m.message_reference && m.message_reference.message_id) || null,
@@ -138,17 +138,17 @@ function formatMessagesForExport(messages, channel, channelName, format, include
 
     if (format === "md") {
         const lines = [
-            "# 💬 Historial de MD: " + channelName,
-            "- **ID del Canal:** `" + channel.id + "`",
-            "- **Fecha:** " + formatDateReadable(exportedAt),
-            "- **Total de mensajes:** " + messages.length,
-            "- **Previsualizaciones de sitios web:** Ignoradas (solo adjuntos reales)",
+            "# 💬 DM History: " + channelName,
+            "- **Channel ID:** `" + channel.id + "`",
+            "- **Date:** " + formatDateReadable(exportedAt),
+            "- **Total messages:** " + messages.length,
+            "- **Web Previews:** Ignored (Only real attachments)",
             "",
             "---",
             ""
         ];
         for (const m of messages) {
-            const author = (m.author && (m.author.global_name || m.author.username)) || "Usuario";
+            const author = (m.author && (m.author.global_name || m.author.username)) || "User";
             const time = formatDateReadable(m.timestamp);
             const pin = m.pinned ? " 📌 **PIN**" : "";
             lines.push("### **" + author + "** — *" + time + "*" + pin);
@@ -167,23 +167,23 @@ function formatMessagesForExport(messages, channel, channelName, format, include
 
     const lines = [
         "======================================================================",
-        " HISTORIAL DE CHAT MD: " + channelName,
-        " ID del Canal        : " + channel.id,
-        " Exportado el        : " + formatDateReadable(exportedAt),
-        " Total de Mensajes   : " + messages.length,
-        " Imágenes Adjuntas   : " + (includeImages ? "Incluidas (Solo adjuntos reales subidos al MD, sin previews web)" : "Omitidas (Solo texto)"),
+        " DM CHAT HISTORY: " + channelName,
+        " Channel ID      : " + channel.id,
+        " Exported At     : " + formatDateReadable(exportedAt),
+        " Total Messages  : " + messages.length,
+        " Attachments     : " + (includeImages ? "Included (Only real uploads, no web previews)" : "Omitted (Text only)"),
         "======================================================================",
         ""
     ];
 
     for (const m of messages) {
-        const author = (m.author && (m.author.global_name || m.author.username)) || "Usuario";
+        const author = (m.author && (m.author.global_name || m.author.username)) || "User";
         const time = formatDateReadable(m.timestamp);
         const pin = m.pinned ? " [📌 PIN]" : "";
-        const edit = m.edited_timestamp ? " (editado)" : "";
+        const edit = m.edited_timestamp ? " (edited)" : "";
         lines.push("[" + time + "]" + pin + " " + author + edit + ": " + (m.content || ""));
         for (const att of filterAttachments(m.attachments)) {
-            const label = isImageAttachment(att) ? "🖼 Imagen adjunta" : "📎 Archivo adjunto";
+            const label = isImageAttachment(att) ? "🖼 Image attached" : "📎 File attached";
             lines.push("    └── " + label + ": " + att.filename + " -> " + att.url);
         }
     }
@@ -226,7 +226,7 @@ async function runDMExport(options) {
     const sleep = function (ms) { return new Promise(function (res) { setTimeout(res, ms); }); };
 
     try {
-        if (options.onStatus) options.onStatus("Iniciando lectura de " + channelName + "...");
+        if (options.onStatus) options.onStatus("Starting to read " + channelName + "...");
 
         let allMessages = [];
 
@@ -283,7 +283,7 @@ async function runDMExport(options) {
                     afterCursor = batch[batch.length - 1].id;
 
                     if (batchCount % 3 === 0) {
-                        const statusText = "⏳ " + allMessages.length + " mensajes leídos en " + channelName + "...";
+                        const statusText = "⏳ " + allMessages.length + " messages read in " + channelName + "...";
                         if (options.onStatus) options.onStatus(statusText);
                     }
 
@@ -293,7 +293,7 @@ async function runDMExport(options) {
                     const retryAfter = (err && err.body && err.body.retry_after) || (err && err.retry_after);
                     if (retryAfter) {
                         const waitMs = Math.ceil(Number(retryAfter) * 1000) + 300;
-                        if (options.onStatus) options.onStatus("Rate limit: esperando " + (waitMs / 1000).toFixed(1) + "s...");
+                        if (options.onStatus) options.onStatus("Rate limit: waiting " + (waitMs / 1000).toFixed(1) + "s...");
                         await sleep(waitMs);
                         continue;
                     }
@@ -303,7 +303,7 @@ async function runDMExport(options) {
         }
 
         if (allMessages.length === 0) {
-            if (options.onStatus) options.onStatus("No se encontraron mensajes.");
+            if (options.onStatus) options.onStatus("No messages found.");
             return;
         }
 
@@ -317,7 +317,7 @@ async function runDMExport(options) {
             ignoreWebPreviews
         );
 
-        const summary = "✅ Exportados " + allMessages.length + " mensajes de \"" + channelName + "\" en ." + format.toUpperCase();
+        const summary = "✅ Exported " + allMessages.length + " messages from \"" + channelName + "\" to ." + format.toUpperCase();
         storage.lastExportSummary = summary;
         if (options.onStatus) options.onStatus(summary);
 
@@ -380,7 +380,7 @@ function SettingsPanel() {
     const [ignoreWebPreviews, setIgnoreWebPreviews] = React.useState(storage.ignoreWebPreviews ?? true);
     const [rangeMode, setRangeMode] = React.useState(storage.rangeMode || "all");
     const [allowServers, setAllowServers] = React.useState(storage.allowServers ?? false);
-    const [statusMsg, setStatusMsg] = React.useState(storage.lastExportSummary || "Listo para exportar.");
+    const [statusMsg, setStatusMsg] = React.useState(storage.lastExportSummary || "Ready to export.");
 
     const cycleFormat = function () {
         const next = format === "txt" ? "json" : format === "json" ? "md" : "txt";
@@ -396,26 +396,26 @@ function SettingsPanel() {
 
     const rangeLabel =
         rangeMode === "all"
-            ? "De principio a fin (Todo el chat)"
+            ? "Start to finish (Entire chat)"
             : rangeMode === "to_last_pin"
-            ? "De principio hasta el último Pin"
-            : "Solo mensajes fijados (Pins)";
+            ? "Start to last Pin"
+            : "Only pinned messages (Pins)";
 
     return React.createElement(
         ScrollView,
         { style: { flex: 1, padding: 12 } },
         React.createElement(
             FormSection,
-            { title: "Configuración de Exportación de MD" },
+            { title: "DM Export Configuration" },
             React.createElement(FormRow, {
-                label: "Formato de salida: ." + format.toUpperCase(),
-                subLabel: "Toca para cambiar entre TXT (legible), JSON (estructurado) y MD (Markdown)",
+                label: "Output format: ." + format.toUpperCase(),
+                subLabel: "Tap to toggle between TXT (readable), JSON (structured) and MD (Markdown)",
                 onPress: cycleFormat
             }),
             React.createElement(FormDivider, null),
             React.createElement(FormSwitchRow, {
-                label: "Incluir imágenes / archivos subidos al MD",
-                subLabel: "Si se desactiva, se descargará únicamente el texto de los mensajes",
+                label: "Include images / uploaded files",
+                subLabel: "If disabled, only message text will be downloaded",
                 value: includeImages,
                 onValueChange: function (v) {
                     storage.includeImages = v;
@@ -424,8 +424,8 @@ function SettingsPanel() {
             }),
             React.createElement(FormDivider, null),
             React.createElement(FormSwitchRow, {
-                label: "Ignorar previsualizaciones de sitios web (Links/Embeds)",
-                subLabel: "Evita incluir imágenes/vídeos de links externos; solo procesa archivos realmente subidos al MD",
+                label: "Ignore website previews (Links/Embeds)",
+                subLabel: "Prevents including external link media; only processes actual uploaded files",
                 value: ignoreWebPreviews,
                 onValueChange: function (v) {
                     storage.ignoreWebPreviews = v;
@@ -434,8 +434,8 @@ function SettingsPanel() {
             }),
             React.createElement(FormDivider, null),
             React.createElement(FormSwitchRow, {
-                label: "Filtrar solo imágenes adjuntas",
-                subLabel: "Incluye solo fotos/GIFs subidos (PNG, JPG, GIF, WEBP) e ignora otros archivos",
+                label: "Filter only image attachments",
+                subLabel: "Includes only uploaded photos/GIFs (PNG, JPG, GIF, WEBP) and ignores other files",
                 value: onlyImages,
                 onValueChange: function (v) {
                     storage.onlyImages = v;
@@ -444,14 +444,14 @@ function SettingsPanel() {
             }),
             React.createElement(FormDivider, null),
             React.createElement(FormRow, {
-                label: "Recorrido: " + rangeLabel,
-                subLabel: "Toca para alternar entre Todo el chat, Principio a Pin, o Solo Pins",
+                label: "Range: " + rangeLabel,
+                subLabel: "Tap to toggle between Entire chat, Start to Pin, or Only Pins",
                 onPress: cycleRange
-                        }),
+            }),
             React.createElement(FormDivider, null),
             React.createElement(FormSwitchRow, {
-                label: "Permitir también en canales de servidor",
-                subLabel: "Por defecto está restringido exclusivamente a Mensajes Directos (MD)",
+                label: "Allow in server channels too",
+                subLabel: "Restricted to Direct Messages (DMs) by default",
                 value: allowServers,
                 onValueChange: function (v) {
                     storage.allowServers = v;
@@ -461,9 +461,9 @@ function SettingsPanel() {
         ),
         React.createElement(
             FormSection,
-            { title: "Exportar el MD Abierto Actualmente" },
+            { title: "EXPORT CURRENTLY OPEN DM" },
             React.createElement(FormRow, {
-                label: "📥 Descargar el MD actual ahora",
+                label: "📥 Download current DM now",
                 subLabel: statusMsg,
                 onPress: function () { runDMExport({ onStatus: setStatusMsg }); }
             })
@@ -479,30 +479,30 @@ return {
             unregisterCommand = registerCommand({
                 name: "exportdm",
                 displayName: "exportdm",
-                description: "Descarga todo el historial del MD actual de principio a fin (con o sin imágenes subidas)",
-                displayDescription: "Descarga todo el historial del MD actual de principio a fin (con o sin imágenes subidas)",
+                description: "Downloads the entire history of the current DM from start to finish",
+                displayDescription: "Downloads the entire history of the current DM from start to finish",
                 options: [
                     {
-                        name: "formato",
-                        displayName: "formato",
-                        description: "Formato: txt, json o md",
-                        displayDescription: "Formato: txt, json o md",
+                        name: "format",
+                        displayName: "format",
+                        description: "Format: txt, json or md",
+                        displayDescription: "Format: txt, json or md",
                         type: 3,
                         required: false
                     },
                     {
-                        name: "imagenes",
-                        displayName: "imagenes",
-                        description: "Incluir imágenes subidas al MD (true / false)",
-                        displayDescription: "Incluir imágenes subidas al MD (true / false)",
+                        name: "images",
+                        displayName: "images",
+                        description: "Include uploaded images (true / false)",
+                        displayDescription: "Include uploaded images (true / false)",
                         type: 5,
                         required: false
                     },
                     {
-                        name: "modo",
-                        displayName: "modo",
-                        description: "all (todo), to_last_pin (principio a pin), only_pins (solo pins)",
-                        displayDescription: "all (todo), to_last_pin (principio a pin), only_pins (solo pins)",
+                        name: "mode",
+                        displayName: "mode",
+                        description: "all (entire chat), to_last_pin (start to pin), only_pins",
+                        displayDescription: "all (entire chat), to_last_pin (start to pin), only_pins",
                         type: 3,
                         required: false
                     }
@@ -511,9 +511,9 @@ return {
                 inputType: 1,
                 type: 1,
                 execute: function (args, ctx) {
-                    const fmtArg = args && args.find(function (a) { return a.name === "formato"; });
-                    const imgArg = args && args.find(function (a) { return a.name === "imagenes"; });
-                    const modeArg = args && args.find(function (a) { return a.name === "modo"; });
+                    const fmtArg = args && args.find(function (a) { return a.name === "format"; });
+                    const imgArg = args && args.find(function (a) { return a.name === "images"; });
+                    const modeArg = args && args.find(function (a) { return a.name === "mode"; });
 
                     const fmtVal = fmtArg && fmtArg.value;
                     const imgVal = imgArg && imgArg.value;
@@ -530,7 +530,7 @@ return {
                     });
 
                     return {
-                        content: "⏳ **DMChatExporter:** Descargando historial del MD en segundo plano (ignorando previsualizaciones de links web)... Al terminar se abrirá el menú para guardar/compartir el archivo."
+                        content: "⏳ **DMChatExporter:** Downloading DM history in the background..."
                     };
                 }
             });
