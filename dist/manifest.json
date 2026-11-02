@@ -1,0 +1,15 @@
+{
+  "name": "DMChatExporter",
+  "description": "Descarga todo un chat de MD de principio a fin (o hasta el último pin), con o sin imágenes subidas (ignorando previsualizaciones de links web), en TXT, JSON o Markdown.",
+  "authors": [
+    {
+      "name": "Carlos (carluvie)",
+      "id": "0"
+    }
+  ],
+  "main": "index.js",
+  "vendetta": {
+    "icon": "ic_download_24px"
+  },
+  "hash": "740c82dc40fde670b561c324bade35339267c11afa8b49829bf80fa8e6d8a8d3"
+}

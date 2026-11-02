@@ -1,0 +1,12 @@
+{
+  "name": "kettu-dm-chat-exporter",
+  "version": "2.0.0",
+  "description": "Plugin para Kettu / Bunny / Revenge / Vendetta que exporta chats de MD de principio a fin con o sin imágenes subidas (ignorando previsualizaciones de sitios web).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node ../tests/run_tests.mjs",
+    "serve": "python3 servidor_local_kettu.py"
+  }
+}
