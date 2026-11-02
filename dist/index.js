@@ -332,7 +332,6 @@ async function runDMExport(options) {
         const fileName = "MD_" + safeName + "." + format;
         let fileShared = false;
 
-        // Intento 1: Escribir archivo físico en caché y compartir el enlace (Bypass límite de 1MB de Android)
         if (FileManager && typeof FileManager.writeFile === "function") {
             try {
                 const cacheDir = (FileManager.getConstants && FileManager.getConstants().CacheDirPath) || "/data/user/0/com.discord/cache";
@@ -346,7 +345,6 @@ async function runDMExport(options) {
                 }
             } catch (err1) {
                 try {
-                    // Fallback de estructura para algunas versiones de Discord
                     await FileManager.writeFile('cache', fileName, outputText, 'utf8');
                     const cacheDir = (FileManager.getConstants && FileManager.getConstants().CacheDirPath) || "/data/user/0/com.discord/cache";
                     if (ShareModule && typeof ShareModule.share === "function") {
@@ -359,7 +357,6 @@ async function runDMExport(options) {
             }
         }
 
-        // Intento 2: Fallback original (Texto crudo, falla en chats gigantes)
         if (!fileShared && ShareModule && typeof ShareModule.share === "function") {
             await ShareModule.share({
                 title: fileName,
@@ -450,7 +447,7 @@ function SettingsPanel() {
                 label: "Recorrido: " + rangeLabel,
                 subLabel: "Toca para alternar entre Todo el chat, Principio a Pin, o Solo Pins",
                 onPress: cycleRange
-            }),
+                        }),
             React.createElement(FormDivider, null),
             React.createElement(FormSwitchRow, {
                 label: "Permitir también en canales de servidor",
@@ -533,7 +530,7 @@ return {
                     });
 
                     return {
-                        content: "⏳ **DMChatExporter:** Descargando historial del MD en segundo plano..."
+                        content: "⏳ **DMChatExporter:** Descargando historial del MD en segundo plano (ignorando previsualizaciones de links web)... Al terminar se abrirá el menú para guardar/compartir el archivo."
                     };
                 }
             });
