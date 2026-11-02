@@ -6,7 +6,7 @@ const { findByProps, findByStoreName } = metro;
 const { React, ReactNative } = metro.common;
 const { registerCommand } = commands;
 const { storage } = plugin;
-const { showToast } = ui.toasts;
+// const { showToast } = ui.toasts;
 const { Forms, General } = ui.components;
 
 const { ScrollView } = General;
@@ -33,7 +33,6 @@ function isGenuineDiscordAttachment(att, strictCdn) {
         const parsed = new URL(att.url);
         if (parsed.protocol !== "https:") return false;
         if (!ALLOWED_DISCORD_CDN_HOSTS.has(parsed.hostname.toLowerCase())) return false;
-        // Solo permitir archivos realmente subidos al chat (/attachments/), nunca /external/ de sitios web
         if (!parsed.pathname.startsWith("/attachments/")) return false;
         return true;
     } catch (e) {
@@ -198,7 +197,7 @@ let isExportRunning = false;
 async function runDMExport(options) {
     options = options || {};
     if (isExportRunning) {
-        showToast("⏳ Ya hay una exportación de MD en curso.");
+        // showToast("⏳ Ya hay una exportación de MD en curso.");
         return;
     }
 
@@ -211,19 +210,19 @@ async function runDMExport(options) {
 
     const targetChannelId = options.channelId || (SelectedChannelStore && SelectedChannelStore.getChannelId && SelectedChannelStore.getChannelId());
     if (!targetChannelId) {
-        showToast("❌ Abre primero el chat de MD que deseas exportar.");
+        // showToast("❌ Abre primero el chat de MD que deseas exportar.");
         return;
     }
 
     const channel = ChannelStore && ChannelStore.getChannel ? ChannelStore.getChannel(targetChannelId) : null;
     if (!channel) {
-        showToast("❌ No se pudo encontrar la información del canal actual.");
+        // showToast("❌ No se pudo encontrar la información del canal actual.");
         return;
     }
 
     const isDM = channel.type === CHANNEL_TYPE_DM || channel.type === CHANNEL_TYPE_GROUP_DM;
     if (!isDM && !storage.allowServers) {
-        showToast("⚠️ Este plugin está configurado solo para Mensajes Directos (MD).");
+        // showToast("⚠️ Este plugin está configurado solo para Mensajes Directos (MD).");
         return;
     }
 
@@ -240,7 +239,7 @@ async function runDMExport(options) {
     const sleep = function (ms) { return new Promise(function (res) { setTimeout(res, ms); }); };
 
     try {
-        showToast("📥 Iniciando exportación de MD: " + channelName + "...");
+        // showToast("📥 Iniciando exportación de MD: " + channelName + "...");
         if (options.onStatus) options.onStatus("Iniciando lectura de " + channelName + "...");
 
         let allMessages = [];
@@ -299,7 +298,7 @@ async function runDMExport(options) {
 
                     if (batchCount % 3 === 0) {
                         const statusText = "⏳ " + allMessages.length + " mensajes leídos en " + channelName + "...";
-                        showToast(statusText);
+                        // showToast(statusText);
                         if (options.onStatus) options.onStatus(statusText);
                     }
 
@@ -319,7 +318,7 @@ async function runDMExport(options) {
         }
 
         if (allMessages.length === 0) {
-            showToast("⚠️ No se encontraron mensajes para exportar.");
+            // showToast("⚠️ No se encontraron mensajes para exportar.");
             if (options.onStatus) options.onStatus("No se encontraron mensajes.");
             return;
         }
@@ -351,11 +350,11 @@ async function runDMExport(options) {
             });
         }
 
-        showToast("✅ ¡Listo! " + allMessages.length + " mensajes exportados (y copiados al portapapeles).");
+        // showToast("✅ ¡Listo! " + allMessages.length + " mensajes exportados (y copiados al portapapeles).");
     } catch (e) {
         const msg = (e && e.message) || String(e);
         if (logger && logger.error) logger.error("DMChatExporter error:", e);
-        showToast("❌ Error al exportar: " + msg);
+        // showToast("❌ Error al exportar: " + msg);
         if (options.onStatus) options.onStatus("Error: " + msg);
     } finally {
         isExportRunning = false;
@@ -468,8 +467,8 @@ return {
             unregisterCommand = registerCommand({
                 name: "exportdm",
                 displayName: "exportdm",
-                description: "Descarga todo el historial del MD actual de principio a fin (con o sin imágenes subidas)",
-                displayDescription: "Descarga todo el historial del MD actual de principio a fin (con o sin imágenes subidas)",
+                description: "Descarga todo el historial del MD actual de principio a fin",
+                displayDescription: "Descarga todo el historial del MD actual de principio a fin",
                 options: [
                     {
                         name: "formato",
@@ -500,31 +499,27 @@ return {
                 inputType: 1,
                 type: 1,
                 execute: function (args, ctx) {
-                    const fmtArg = args && args.find(function (a) { return a.name === "formato"; });
-                    const imgArg = args && args.find(function (a) { return a.name === "imagenes"; });
-                    const modeArg = args && args.find(function (a) { return a.name === "modo"; });
+                    const fmtArg = args && args.find(function(a) { return a.name === "formato"; });
+                    const imgArg = args && args.find(function(a) { return a.name === "imagenes"; });
+                    const modeArg = args && args.find(function(a) { return a.name === "modo"; });
 
-                    const fmtVal = fmtArg && fmtArg.value;
-                    const imgVal = imgArg && imgArg.value;
-                    const modeVal = modeArg && modeArg.value;
-
-                    const validFormat = (fmtVal === "json" || fmtVal === "txt" || fmtVal === "md") ? fmtVal : undefined;
-                    const validMode = (modeVal === "all" || modeVal === "to_last_pin" || modeVal === "only_pins") ? modeVal : undefined;
+                    const validFormat = (fmtArg && (fmtArg.value === "json" || fmtArg.value === "txt" || fmtArg.value === "md")) ? fmtArg.value : undefined;
+                    const validMode = (modeArg && (modeArg.value === "all" || modeArg.value === "to_last_pin" || modeArg.value === "only_pins")) ? modeArg.value : undefined;
 
                     runDMExport({
                         channelId: ctx && ctx.channel && ctx.channel.id,
                         format: validFormat,
-                        includeImages: typeof imgVal === "boolean" ? imgVal : undefined,
+                        includeImages: imgArg ? Boolean(imgArg.value) : undefined,
                         rangeMode: validMode
                     });
 
                     return {
-                        content: "⏳ **DMChatExporter:** Descargando historial del MD en segundo plano (ignorando previsualizaciones de links web)... Al terminar se abrirá el menú para guardar/compartir el archivo."
+                        content: "⏳ **DMChatExporter:** Descargando historial del MD en segundo plano..."
                     };
                 }
             });
         } catch (e) {
-            if (logger && logger.error) logger.error("No se pudo registrar /exportdm:", e);
+            if (logger && logger.error) logger.error("No se pudo registrar el comando /exportdm:", e);
         }
     },
     onUnload: function () {
@@ -532,13 +527,6 @@ return {
             if (unregisterCommand) unregisterCommand();
         } catch (e) {}
     },
-    settings: SettingsPanel,
-    // Exponer utilidades para la suite de tests automatizados
-    __testUtils: {
-        isGenuineDiscordAttachment: isGenuineDiscordAttachment,
-        isImageAttachment: isImageAttachment,
-        formatMessagesForExport: formatMessagesForExport,
-        runDMExport: runDMExport
-    }
+    settings: SettingsPanel
 };
-})(vendetta);
+})(window.vendetta);
