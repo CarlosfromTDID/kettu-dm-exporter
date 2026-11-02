@@ -6,7 +6,6 @@ const { findByProps, findByStoreName } = metro;
 const { React, ReactNative } = metro.common;
 const { registerCommand } = commands;
 const { storage } = plugin;
-// const { showToast } = ui.toasts;
 const { Forms, General } = ui.components;
 
 const { ScrollView } = General;
@@ -33,7 +32,6 @@ function isGenuineDiscordAttachment(att, strictCdn) {
         const parsed = new URL(att.url);
         if (parsed.protocol !== "https:") return false;
         if (!ALLOWED_DISCORD_CDN_HOSTS.has(parsed.hostname.toLowerCase())) return false;
-        // Solo permitir archivos realmente subidos al chat (/attachments/), nunca /external/ de sitios web
         if (!parsed.pathname.startsWith("/attachments/")) return false;
         return true;
     } catch (e) {
@@ -197,10 +195,7 @@ let isExportRunning = false;
 
 async function runDMExport(options) {
     options = options || {};
-    if (isExportRunning) {
-        // showToast("⏳ Ya hay una exportación de MD en curso.");
-        return;
-    }
+    if (isExportRunning) return;
 
     const stores = getStores();
     const ChannelStore = stores.ChannelStore;
@@ -210,22 +205,13 @@ async function runDMExport(options) {
     const Clipboard = stores.Clipboard;
 
     const targetChannelId = options.channelId || (SelectedChannelStore && SelectedChannelStore.getChannelId && SelectedChannelStore.getChannelId());
-    if (!targetChannelId) {
-        // showToast("❌ Abre primero el chat de MD que deseas exportar.");
-        return;
-    }
+    if (!targetChannelId) return;
 
     const channel = ChannelStore && ChannelStore.getChannel ? ChannelStore.getChannel(targetChannelId) : null;
-    if (!channel) {
-        // showToast("❌ No se pudo encontrar la información del canal actual.");
-        return;
-    }
+    if (!channel) return;
 
     const isDM = channel.type === CHANNEL_TYPE_DM || channel.type === CHANNEL_TYPE_GROUP_DM;
-    if (!isDM && !storage.allowServers) {
-        // showToast("⚠️ Este plugin está configurado solo para Mensajes Directos (MD).");
-        return;
-    }
+    if (!isDM && !storage.allowServers) return;
 
     const format = options.format || storage.format || "txt";
     const includeImages = typeof options.includeImages === "boolean" ? options.includeImages : (storage.includeImages ?? true);
@@ -240,7 +226,6 @@ async function runDMExport(options) {
     const sleep = function (ms) { return new Promise(function (res) { setTimeout(res, ms); }); };
 
     try {
-        // showToast("📥 Iniciando exportación de MD: " + channelName + "...");
         if (options.onStatus) options.onStatus("Iniciando lectura de " + channelName + "...");
 
         let allMessages = [];
@@ -299,7 +284,6 @@ async function runDMExport(options) {
 
                     if (batchCount % 3 === 0) {
                         const statusText = "⏳ " + allMessages.length + " mensajes leídos en " + channelName + "...";
-                        // showToast(statusText);
                         if (options.onStatus) options.onStatus(statusText);
                     }
 
@@ -319,7 +303,6 @@ async function runDMExport(options) {
         }
 
         if (allMessages.length === 0) {
-            // showToast("⚠️ No se encontraron mensajes para exportar.");
             if (options.onStatus) options.onStatus("No se encontraron mensajes.");
             return;
         }
@@ -343,19 +326,50 @@ async function runDMExport(options) {
         } catch (e) {}
 
         const ShareModule = (General && General.Share) || (ReactNative && ReactNative.Share);
-        if (ShareModule && typeof ShareModule.share === "function") {
-            const safeName = channelName.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const FileManager = ReactNative.NativeModules.DCDFileManager || ReactNative.NativeModules.RTNFileManager;
+        
+        const safeName = channelName.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const fileName = "MD_" + safeName + "." + format;
+        let fileShared = false;
+
+        // Intento 1: Escribir archivo físico en caché y compartir el enlace (Bypass límite de 1MB de Android)
+        if (FileManager && typeof FileManager.writeFile === "function") {
+            try {
+                const cacheDir = (FileManager.getConstants && FileManager.getConstants().CacheDirPath) || "/data/user/0/com.discord/cache";
+                const filePath = cacheDir + "/" + fileName;
+                
+                await FileManager.writeFile(filePath, outputText, "utf8");
+                
+                if (ShareModule && typeof ShareModule.share === "function") {
+                    await ShareModule.share({ url: "file://" + filePath, title: fileName });
+                    fileShared = true;
+                }
+            } catch (err1) {
+                try {
+                    // Fallback de estructura para algunas versiones de Discord
+                    await FileManager.writeFile('cache', fileName, outputText, 'utf8');
+                    const cacheDir = (FileManager.getConstants && FileManager.getConstants().CacheDirPath) || "/data/user/0/com.discord/cache";
+                    if (ShareModule && typeof ShareModule.share === "function") {
+                        await ShareModule.share({ url: "file://" + cacheDir + "/" + fileName, title: fileName });
+                        fileShared = true;
+                    }
+                } catch (err2) {
+                    if (logger && logger.error) logger.error("File write error:", err2);
+                }
+            }
+        }
+
+        // Intento 2: Fallback original (Texto crudo, falla en chats gigantes)
+        if (!fileShared && ShareModule && typeof ShareModule.share === "function") {
             await ShareModule.share({
-                title: "MD_" + safeName + "." + format,
+                title: fileName,
                 message: outputText
             });
         }
 
-        // showToast("✅ ¡Listo! " + allMessages.length + " mensajes exportados (y copiados al portapapeles).");
     } catch (e) {
         const msg = (e && e.message) || String(e);
         if (logger && logger.error) logger.error("DMChatExporter error:", e);
-        // showToast("❌ Error al exportar: " + msg);
         if (options.onStatus) options.onStatus("Error: " + msg);
     } finally {
         isExportRunning = false;
@@ -519,26 +533,17 @@ return {
                     });
 
                     return {
-                        content: "⏳ **DMChatExporter:** Descargando historial del MD en segundo plano (ignorando previsualizaciones de links web)... Al terminar se abrirá el menú para guardar/compartir el archivo."
+                        content: "⏳ **DMChatExporter:** Descargando historial del MD en segundo plano..."
                     };
                 }
             });
-        } catch (e) {
-            if (logger && logger.error) logger.error("No se pudo registrar /exportdm:", e);
-        }
+        } catch (e) {}
     },
     onUnload: function () {
         try {
             if (unregisterCommand) unregisterCommand();
         } catch (e) {}
     },
-    settings: SettingsPanel,
-    // Exponer utilidades para la suite de tests automatizados
-    __testUtils: {
-        isGenuineDiscordAttachment: isGenuineDiscordAttachment,
-        isImageAttachment: isImageAttachment,
-        formatMessagesForExport: formatMessagesForExport,
-        runDMExport: runDMExport
-    }
+    settings: SettingsPanel
 };
-})(vendetta);
+})(window.vendetta);
