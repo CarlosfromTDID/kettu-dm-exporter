@@ -6,7 +6,7 @@ const { findByProps, findByStoreName } = metro;
 const { React, ReactNative } = metro.common;
 const { registerCommand } = commands;
 const { storage } = plugin;
-const { showToast } = ui.toasts;
+// const { showToast } = ui.toasts;
 const { Forms, General } = ui.components;
 
 const { ScrollView } = General;
@@ -198,7 +198,7 @@ let isExportRunning = false;
 async function runDMExport(options) {
     options = options || {};
     if (isExportRunning) {
-        showToast("⏳ Ya hay una exportación de MD en curso.");
+        // showToast("⏳ Ya hay una exportación de MD en curso.");
         return;
     }
 
@@ -211,19 +211,19 @@ async function runDMExport(options) {
 
     const targetChannelId = options.channelId || (SelectedChannelStore && SelectedChannelStore.getChannelId && SelectedChannelStore.getChannelId());
     if (!targetChannelId) {
-        showToast("❌ Abre primero el chat de MD que deseas exportar.");
+        // showToast("❌ Abre primero el chat de MD que deseas exportar.");
         return;
     }
 
     const channel = ChannelStore && ChannelStore.getChannel ? ChannelStore.getChannel(targetChannelId) : null;
     if (!channel) {
-        showToast("❌ No se pudo encontrar la información del canal actual.");
+        // showToast("❌ No se pudo encontrar la información del canal actual.");
         return;
     }
 
     const isDM = channel.type === CHANNEL_TYPE_DM || channel.type === CHANNEL_TYPE_GROUP_DM;
     if (!isDM && !storage.allowServers) {
-        showToast("⚠️ Este plugin está configurado solo para Mensajes Directos (MD).");
+        // showToast("⚠️ Este plugin está configurado solo para Mensajes Directos (MD).");
         return;
     }
 
@@ -240,7 +240,7 @@ async function runDMExport(options) {
     const sleep = function (ms) { return new Promise(function (res) { setTimeout(res, ms); }); };
 
     try {
-        showToast("📥 Iniciando exportación de MD: " + channelName + "...");
+        // showToast("📥 Iniciando exportación de MD: " + channelName + "...");
         if (options.onStatus) options.onStatus("Iniciando lectura de " + channelName + "...");
 
         let allMessages = [];
@@ -299,7 +299,7 @@ async function runDMExport(options) {
 
                     if (batchCount % 3 === 0) {
                         const statusText = "⏳ " + allMessages.length + " mensajes leídos en " + channelName + "...";
-                        showToast(statusText);
+                        // showToast(statusText);
                         if (options.onStatus) options.onStatus(statusText);
                     }
 
@@ -319,7 +319,7 @@ async function runDMExport(options) {
         }
 
         if (allMessages.length === 0) {
-            showToast("⚠️ No se encontraron mensajes para exportar.");
+            // showToast("⚠️ No se encontraron mensajes para exportar.");
             if (options.onStatus) options.onStatus("No se encontraron mensajes.");
             return;
         }
@@ -351,11 +351,11 @@ async function runDMExport(options) {
             });
         }
 
-        showToast("✅ ¡Listo! " + allMessages.length + " mensajes exportados (y copiados al portapapeles).");
+        // showToast("✅ ¡Listo! " + allMessages.length + " mensajes exportados (y copiados al portapapeles).");
     } catch (e) {
         const msg = (e && e.message) || String(e);
         if (logger && logger.error) logger.error("DMChatExporter error:", e);
-        showToast("❌ Error al exportar: " + msg);
+        // showToast("❌ Error al exportar: " + msg);
         if (options.onStatus) options.onStatus("Error: " + msg);
     } finally {
         isExportRunning = false;
